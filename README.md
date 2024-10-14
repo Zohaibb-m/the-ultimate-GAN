@@ -53,4 +53,4 @@ Learning Rate: 0.0003, Epochs: 50, Batch Size: 32, Transforms with Mean: 0.5 and
 ```bash
 python3 -m the_ultimate_gan.cli train --model-name s-gan --dataset fashion-mnist -rt
 ```
-<p> &nbsp &nbsp &nbsp &nbsp <img src="assets/sgan-mnist.gif" > &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp <img src="assets/sgan-fashion-mnist.gif" > </p>
+<p> &nbsp &nbsp <img src="assets/sgan-mnist.gif" > &nbsp &nbsp <img src="assets/sgan-fashion-mnist.gif" > </p>
