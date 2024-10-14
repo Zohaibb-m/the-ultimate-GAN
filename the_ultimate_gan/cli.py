@@ -50,9 +50,23 @@ def tugan():
     help="Number of epochs to train model for",
     type=int,
 )
-def train(model_name, dataset, learning_rate, latent_dim, batch_size, num_epochs):
+@click.option(
+    "--checkpoint-interval",
+    "-ci",
+    default=10,
+    help="Interval to save model checkpoints",
+    type=int,
+)
+@click.option(
+    "--resume-training",
+    "-rt",
+    default=False,
+    help="Resume training from a checkpoint",
+    is_flag=True,
+)
+def train(model_name, dataset, learning_rate, latent_dim, batch_size, num_epochs, checkpoint_interval, resume_training):
     model = model_map[model_name](
-        learning_rate, latent_dim, batch_size, num_epochs, dataset
+        learning_rate, latent_dim, batch_size, num_epochs, dataset, checkpoint_interval, resume_training
     )
     model.train()
 
