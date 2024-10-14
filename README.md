@@ -34,7 +34,23 @@ I will soon add the detailed usage docs but for now we can run and train the gan
 python3 -m the_ultimate_gan.cli train --model-name s-gan --dataset fashion-mnist --learning-rate 0.0003
 ```
 
+To start a tensorboard session run:
+```bash
+tensorboard --logdir ./runs
+```
+
 More options are available and can be viewed using
 ```bash
 python3 -m the_ultimate_gan.cli train --help
 ```
+<hr>
+
+## Implementations
+
+### Simple GAN
+Trained on Apple M2 16gb (Average 89it/s) with the following configurations:</br>
+Learning Rate: 0.0003, Epochs: 50, Batch Size: 32, Transforms with Mean: 0.5 and Std: 0.5
+```bash
+python3 -m the_ultimate_gan.cli train --model-name s-gan --dataset fashion-mnist -rt
+```
+<p> &nbsp &nbsp &nbsp &nbsp <img src="assets/sgan-mnist.gif" > &nbsp &nbsp &nbsp &nbsp &nbsp &nbsp <img src="assets/sgan-fashion-mnist.gif" > </p>
