@@ -54,3 +54,18 @@ Learning Rate: 0.0003, Epochs: 50, Batch Size: 32, Transforms with Mean: 0.5 and
 python3 -m the_ultimate_gan.cli train --model-name s-gan --dataset fashion-mnist -rt
 ```
 <p> <img src="assets/sgan-mnist.gif" width="360" > &nbsp &nbsp &nbsp <img src="assets/sgan-fashion-mnist.gif" width="360"> </p>
+
+<hr>
+
+## Upcoming/Roadmap
+
+<details open>
+<summary>Project Releases, Pypi Package, DCGan, Blogs</summary>
+
+```python
+# First I will try to introduce releases for this package with proper versioning and a pypi package for quick installation.
+# Next up will be a blog explaining the Simple GAN which is already implemented
+# Lastly I will try to also implement DC GAN this week along with its blog
+```
+
+</details>
