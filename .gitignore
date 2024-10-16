@@ -158,3 +158,4 @@ Data/
 runs/
 the_ultimate_gan/checkpoints/
 .DS_Store
+.idea
