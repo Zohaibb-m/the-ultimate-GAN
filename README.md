@@ -48,6 +48,10 @@ python3 -m the_ultimate_gan.cli train --help
 ## Implementations
 
 ### Simple GAN
+#### Explaination:
+The medium article explaining Simple GAN is available with the same code explaination at <kbd>[Building a Simple GAN](https://medium.com/@zohaibmunir32/generative-adversarial-networks-part-1-an-introduction-and-implementation-of-the-simplest-form-6b8973df38fd)</kbd>
+
+#### Training
 Trained on Apple M2 16gb (Average 89it/s) with the following configurations:</br>
 Learning Rate: 0.0003, Epochs: 50, Batch Size: 32, Transforms with Mean: 0.5 and Std: 0.5
 ```bash
@@ -63,7 +67,7 @@ python3 -m the_ultimate_gan.cli train --model-name s-gan --dataset fashion-mnist
 <summary>Project Releases, Pypi Package, DCGan, Blogs</summary>
 
 ```python
-# First I will try to introduce releases for this package with proper versioning and a pypi package for quick installation.
+# First I will try to introduce releases for this package with proper versioning.
 # Next up will be a blog explaining the Simple GAN which is already implemented
 # Lastly I will try to also implement DC GAN this week along with its blog
 ```
