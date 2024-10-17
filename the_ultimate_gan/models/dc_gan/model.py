@@ -43,8 +43,6 @@ class DCGAN:
         - fixed_noise (torch.Tensor): The fixed noise to use for generating images.
         - dataset_name (str): The name of the dataset to use for training.
         - dataset (torchvision.datasets): The dataset to use for training.
-        - image_shape (Tuple[int]): The shape of the images in the dataset.
-        - orig_shape (Tuple[int]): The original shape of the images in the dataset.
         - loader (torch.utils.data.DataLoader): The data loader to use for loading data.
         - generator (Generator): The generator model to use for generating images.
         - discriminator (Discriminator): The discriminator model to use for detecting fake or real images.
@@ -83,6 +81,18 @@ class DCGAN:
             num_epochs (int): The number of epochs to train the model for.
             dataset (str): The name of the dataset to use for training.
         """
+        self.current_epoch = None
+        self.writer_real = None
+        self.writer_fake = None
+        self.criterion = None
+        self.opt_gen = None
+        self.opt_disc = None
+        self.discriminator = None
+        if dataset not in dataset_map:
+            print(
+                f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}"
+            )
+        self.generator = None
         self.device = torch.device(
             "cuda"
             if torch.cuda.is_available()
@@ -94,13 +104,18 @@ class DCGAN:
         self.checkpoint_interval = checkpoint_interval
         self.resume_training = resume_training
         self.checkpoint_root_dir = "the_ultimate_gan/checkpoints/dc_gan"
+        self.out_channels = 3 if dataset not in ["mnist", "fashion-mnist"] else 1
         # Define the transforms
         self.transform = transforms.Compose(
             [
                 transforms.Resize(64),
                 transforms.CenterCrop(64),
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+                (
+                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+                    if self.out_channels == 3
+                    else transforms.Normalize((0.5,), (0.5,))
+                ),
             ]
         )
 
@@ -117,23 +132,14 @@ class DCGAN:
             root="Data/", transform=self.transform, download=True
         )
 
-        self.image_shape = (3, 64, 64)  # Get the shape of the images
-
-        # Get the original shape of the images
-        self.orig_shape = (
-            (-1, self.image_shape[2], self.image_shape[1], self.image_shape[0])
-            if len(self.image_shape) > 2
-            else (-1, 1, self.image_shape[1], self.image_shape[0])
-        )
-
         # Create a data loader
         self.loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
 
         # Initialize the generator
-        self.init_generator(latent_dim, np.prod(self.image_shape))
+        self.init_generator(latent_dim, self.out_channels)
 
         # Initialize the discriminator
-        self.init_discriminator(np.prod(self.image_shape))
+        self.init_discriminator(self.out_channels)
 
         self.init_optimizers(learning_rate)  # Initialize the optimizers
 
@@ -143,17 +149,17 @@ class DCGAN:
 
         # Print the model configurations
         print(
-            f"Model Simple GAN Loaded with dataset: {dataset}. The following configurations were used:\nLearning Rate: {learning_rate}, Epochs: {num_epochs}, Batch Size: {batch_size}, Transforms with Mean: 0.5 and Std: 0.5.\n Starting the Model Training now."
+            f"Model Simple GAN Loaded with dataset: {dataset}. The following configurations were used:\nLearning Rate: {learning_rate}, Epochs: {num_epochs}, Batch Size: {batch_size}, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.\n Starting the Model Training now."
         )
 
-    def init_generator(self, latent_dim, image_dim):
-        self.generator = Generator(latent_dim, 64, 3).to(
+    def init_generator(self, latent_dim, out_channels):
+        self.generator = Generator(latent_dim, 64, out_channels).to(
             self.device
         )  # Initialize the generator
         self.generator.apply(weights_init)
 
-    def init_discriminator(self, image_dim):
-        self.discriminator = Discriminator(3, 64, 1).to(
+    def init_discriminator(self, in_channels):
+        self.discriminator = Discriminator(in_channels, 64, 1).to(
             self.device
         )  # Initialize the discriminator
         self.discriminator.apply(weights_init)
@@ -278,7 +284,7 @@ class DCGAN:
 
     def save_model_for_training(self):
         """
-        Save the model for training. By training we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
+        Save the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
         resuming the training later on. We will save the model's state dict, optimizer's state dict and the current epoch number.
         """
         model_save_path = (
@@ -377,16 +383,11 @@ class DCGAN:
 
         for i in range(num_images):
             noise = torch.randn(1, self.latent_dim).to(self.device)
-            img = self.generator(noise).reshape(self.orig_shape)
+            img = self.generator(noise)
             img = img.detach().cpu().numpy()
             img = img.squeeze()
             # Save the generated image
-            plt.imsave(
-                f"generated_images/dc_gan/generated_image_{i}.png", img, cmap="gray"
-            )
-
-
-# custom weights initialization called on ``netG`` and ``netD``
+            plt.imsave(f"generated_images/dc_gan/generated_image_{i}.png", img)
 
 
 def weights_init(m):
@@ -399,5 +400,5 @@ def weights_init(m):
 
 
 if __name__ == "__main__":
-    model = DCGAN(2e-4, 100, 128, 50, "celeb", 100, False)
+    model = DCGAN(2e-4, 100, 128, 50, "mnist", 100, False)
     model.train()
