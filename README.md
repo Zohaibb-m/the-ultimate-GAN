@@ -48,8 +48,8 @@ python3 -m the_ultimate_gan.cli train --help
 ## Implementations
 
 ### Simple GAN
-#### Explaination:
-The medium article explaining Simple GAN is available with the same code explaination at <kbd>[Building a Simple GAN](https://medium.com/@zohaibmunir32/generative-adversarial-networks-part-1-an-introduction-and-implementation-of-the-simplest-form-6b8973df38fd)</kbd>
+#### Explanation:
+The medium article explaining Simple GAN is available with the same code explanation at <kbd>[Building a Simple GAN](https://medium.com/@zohaibmunir32/generative-adversarial-networks-part-1-an-introduction-and-implementation-of-the-simplest-form-6b8973df38fd)</kbd>
 
 #### Training
 Trained on Apple M2 16gb (Average 89it/s) with the following configurations:</br>
@@ -61,15 +61,27 @@ python3 -m the_ultimate_gan.cli train --model-name s-gan --dataset fashion-mnist
 
 <hr>
 
+### Deep Convolutional GAN
+#### Explanation:
+The medium article explaining DC GAN is available with the same code explanation at <kbd>[Building a Deep Convolutional GAN](https://medium.com/@zohaibmunir32/generative-adversarial-networks-part-2-improved-image-generation-using-deep-convolutional-gan-6e472623831e)</kbd>
+
+#### Training
+Trained on Nvidia GPU P100 (Average 6it/s) with the following configurations:</br>
+Learning Rate: 0.0002, Epochs: 50, Batch Size: 128, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.
+```bash
+python3 -m the_ultimate_gan.cli train --model-name dc-gan --dataset mnist
+```
+<p> <img src="assets/dcgan-mnist.gif" width="360" ></p>
+
+<hr>
+
 ## Upcoming/Roadmap
 
 <details open>
-<summary>Project Releases, Pypi Package, DCGan, Blogs</summary>
+<summary>WGAN</summary>
 
 ```python
-# First I will try to introduce releases for this package with proper versioning.
-# Next up will be a blog explaining the Simple GAN which is already implemented
-# Lastly I will try to also implement DC GAN this week along with its blog
+# Next I will try to implement WGan this weekend along with the blog
 ```
 
 </details>
