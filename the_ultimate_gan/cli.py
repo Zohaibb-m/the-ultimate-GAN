@@ -1,8 +1,9 @@
 import click
 
 from the_ultimate_gan.models.simple_gan.model import SimpleGAN
+from the_ultimate_gan.models.dc_gan.model import DCGAN
 
-model_map = {"s-gan": SimpleGAN}
+model_map = {"s-gan": SimpleGAN, "dc-gan": DCGAN}
 
 
 @click.group()
@@ -19,14 +20,14 @@ def tugan():
     "-m",
     required=True,
     help="The GAN Model you want to train",
-    type=click.Choice(["s-gan", "cycle-gan"]),
+    type=click.Choice(["s-gan", "dc-gan"]),
 )
 @click.option(
     "--dataset",
     "-d",
     default="mnist",
     help="The dataset you want to use for training.",
-    type=click.Choice(["mnist", "cifar10", "fashion-mnist"]),
+    type=click.Choice(["mnist", "cifar10", "fashion-mnist", "cifar100", "celeba"]),
 )
 @click.option(
     "--learning-rate",
@@ -64,11 +65,29 @@ def tugan():
     help="Resume training from a checkpoint",
     is_flag=True,
 )
-def train(model_name, dataset, learning_rate, latent_dim, batch_size, num_epochs, checkpoint_interval, resume_training):
-    model = model_map[model_name](
-        learning_rate, latent_dim, batch_size, num_epochs, dataset, checkpoint_interval, resume_training
-    )
-    model.train()
+def train(
+    model_name,
+    dataset,
+    learning_rate,
+    latent_dim,
+    batch_size,
+    num_epochs,
+    checkpoint_interval,
+    resume_training,
+):
+    try:
+        model = model_map[model_name](
+            learning_rate,
+            latent_dim,
+            batch_size,
+            num_epochs,
+            dataset,
+            checkpoint_interval,
+            resume_training,
+        )
+        model.train()
+    except Exception as e:
+        print(f"Model Training interrupted due to an error.")
 
 
 if __name__ == "__main__":
