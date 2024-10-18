@@ -5,10 +5,7 @@ Class:
     SimpleGAN: A class that implements the SimpleGAN Model
 """
 
-from idlelib.pyparse import trans
-
 import torch
-import numpy as np
 import torchvision
 import os
 
@@ -17,6 +14,7 @@ from torch import optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchinfo import summary
 from the_ultimate_gan.models.dc_gan.layers import Discriminator, Generator
 from tqdm import tqdm
 
@@ -24,7 +22,8 @@ dataset_map = {
     "mnist": datasets.MNIST,
     "fashion-mnist": datasets.FashionMNIST,
     "cifar10": datasets.CIFAR10,
-    "celeb": datasets.CelebA,
+    "cifar100": datasets.CIFAR100,
+    "celeba": datasets.CelebA,
 }
 
 
@@ -92,6 +91,7 @@ class DCGAN:
             print(
                 f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}"
             )
+            raise Exception
         self.generator = None
         self.device = torch.device(
             "cuda"
@@ -112,9 +112,10 @@ class DCGAN:
                 transforms.CenterCrop(64),
                 transforms.ToTensor(),
                 (
-                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                    if self.out_channels == 3
-                    else transforms.Normalize((0.5,), (0.5,))
+                    transforms.Normalize(
+                        [0.5 for _ in range(self.out_channels)],
+                        [0.5 for _ in range(self.out_channels)],
+                    )
                 ),
             ]
         )
@@ -135,11 +136,9 @@ class DCGAN:
         # Create a data loader
         self.loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
 
-        # Initialize the generator
-        self.init_generator(latent_dim, self.out_channels)
+        self.init_generator(latent_dim, self.out_channels)  # Initialize the generator
 
-        # Initialize the discriminator
-        self.init_discriminator(self.out_channels)
+        self.init_discriminator(self.out_channels)  # Initialize the discriminator
 
         self.init_optimizers(learning_rate)  # Initialize the optimizers
 
@@ -149,7 +148,7 @@ class DCGAN:
 
         # Print the model configurations
         print(
-            f"Model Simple GAN Loaded with dataset: {dataset}. The following configurations were used:\nLearning Rate: {learning_rate}, Epochs: {num_epochs}, Batch Size: {batch_size}, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.\n Starting the Model Training now."
+            f"Model DC GAN Loaded with dataset: {dataset}. The following configurations were used:\nLearning Rate: {learning_rate}, Epochs: {num_epochs}, Batch Size: {batch_size}, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.\n Starting the Model Training now."
         )
 
     def init_generator(self, latent_dim, out_channels):
@@ -185,9 +184,9 @@ class DCGAN:
 
     def train(self):
         """
-        Train the Simple GAN model using the dataset.
+        Train the DC GAN model using the dataset.
 
-        This method trains the Simple GAN model using the dataset provided in the constructor.
+        This method trains the DC GAN model using the dataset provided in the constructor.
         It trains the model for the number of epochs specified in the constructor.
         First, it trains the discriminator model and then the generator model.
         """
@@ -211,22 +210,22 @@ class DCGAN:
                     fake = self.generator(noise)  # Generate fake images
 
                     discriminator_real = self.discriminator(real)
-                    lossD_real = self.criterion(
+                    loss_d_real = self.criterion(
                         discriminator_real, torch.ones_like(discriminator_real)
                     )  # Calculate the loss for real images
 
                     discriminator_fake = self.discriminator(fake).view(
                         -1
                     )  # Get the discriminator output for fake images
-                    lossD_fake = self.criterion(
+                    loss_d_fake = self.criterion(
                         discriminator_fake, torch.zeros_like(discriminator_fake)
                     )  # Calculate the loss for fake images
-                    lossD = (
-                        lossD_real + lossD_fake
+                    loss_discriminator = (
+                        loss_d_real + loss_d_fake
                     ) / 2  # Calculate the average loss for the discriminator
 
                     self.discriminator.zero_grad()  # Zero the gradients
-                    lossD.backward(
+                    loss_discriminator.backward(
                         retain_graph=True
                     )  # Backward pass for the discriminator
                     self.opt_disc.step()  # Update the discriminator weights
@@ -234,16 +233,16 @@ class DCGAN:
                     output = self.discriminator(fake).view(
                         -1
                     )  # Get the discriminator output for fake images
-                    lossG = self.criterion(
+                    loss_generator = self.criterion(
                         output, torch.ones_like(output)
                     )  # Calculate the loss for the generator
                     self.generator.zero_grad()  # Zero the gradients
-                    lossG.backward()  # Backward pass for the generator
+                    loss_generator.backward()  # Backward pass for the generator
                     self.opt_gen.step()  # Update the generator weights
 
                     if batch_idx == 0:
                         print(
-                            f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {lossD:.8f}, Loss Generator: {lossG:.8f}"
+                            f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {loss_discriminator:.8f}, Loss Generator: {loss_generator:.8f}"
                         )
 
                         with torch.no_grad():  # Save the generated images to tensorboard
@@ -389,12 +388,40 @@ class DCGAN:
             # Save the generated image
             plt.imsave(f"generated_images/dc_gan/generated_image_{i}.png", img)
 
+    @staticmethod
+    def get_model_summary(summary_model, input_shape) -> summary:
+        """
+        Find the model summary (parameters, input shape, output shape, trainable parameters etc.)
+        Args:
+            summary_model (nn.Module): The model for which we want to print the summary details
+            input_shape (shape): The input shape that the model takes
+
+        Returns:
+            A summary object with the model details in it
+        """
+        return summary(
+            summary_model,
+            input_size=input_shape,
+            verbose=0,
+            col_names=["input_size", "output_size", "num_params", "trainable"],
+            col_width=20,
+            row_settings=["var_names"],
+        )
+
 
 def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find("Conv") != -1:
+    """
+    This function uses the technique discussed in the DC Gan's paper to initialize weights with a specific mean and std.
+    Args:
+        m: The model to initialize the weights for
+
+    Returns:
+        None
+    """
+    class_name = m.__class__.__name__
+    if class_name.find("Conv") != -1:
         nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif classname.find("BatchNorm") != -1:
+    elif class_name.find("BatchNorm") != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
 
