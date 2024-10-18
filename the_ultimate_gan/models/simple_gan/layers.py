@@ -1,6 +1,6 @@
 """Custom Layers for a Simple Generative Adversarial Network
 
-This module contains custom layers used in the Generative Adversarial Network Architecure.
+This module contains custom layers used in the Generative Adversarial Network Architecture.
 
 Classes:
     Generator(nn.Module): Implements a simple generator for GAN which taken in random noise and generates image from it.
@@ -30,7 +30,7 @@ class Generator(nn.Module):
         torch.Tensor: Output tensor of shape (batch_size, img_dim).
     """
 
-    def __init__(self, latent_dim: int, img_dim: int):
+    def __init__(self, latent_dim: int, img_dim: int) -> None:
         super().__init__()
         self.model = nn.Sequential(
             *self.generator_block(latent_dim, 128, normalize=False),
@@ -41,9 +41,10 @@ class Generator(nn.Module):
             nn.Tanh()
         )
 
+    @staticmethod
     def generator_block(
-        self, input_size: int, output_size: int, normalize: bool = True
-    ):
+        input_size: int, output_size: int, normalize: bool = True
+    ) -> nn.Sequential:
         """
         Generator Block for the Generator Model.
 

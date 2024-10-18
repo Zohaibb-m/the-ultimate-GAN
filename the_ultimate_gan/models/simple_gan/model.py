@@ -80,6 +80,15 @@ class SimpleGAN:
             num_epochs (int): The number of epochs to train the model for.
             dataset (str): The name of the dataset to use for training.
         """
+        self.current_epoch = None
+        self.writer_real = None
+        self.writer_fake = None
+        self.discriminator = None
+        self.generator = None
+        self.opt_disc = None
+        self.opt_gen = None
+        self.criterion = None
+
         self.device = torch.device(
             "cuda"
             if torch.cuda.is_available()
@@ -91,6 +100,13 @@ class SimpleGAN:
         self.checkpoint_interval = checkpoint_interval
         self.resume_training = resume_training
         self.checkpoint_root_dir = "the_ultimate_gan/checkpoints/simple_gan"
+
+        if dataset not in dataset_map:
+            print(
+                f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}"
+            )
+            raise Exception
+
         # Define the transforms
         self.transform = transforms.Compose(
             [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
@@ -199,22 +215,22 @@ class SimpleGAN:
                     discriminator_real = self.discriminator(real).view(
                         -1
                     )  # Get the discriminator output for real images
-                    lossD_real = self.criterion(
+                    loss_d_real = self.criterion(
                         discriminator_real, torch.ones_like(discriminator_real)
                     )  # Calculate the loss for real images
 
                     discriminator_fake = self.discriminator(fake).view(
                         -1
                     )  # Get the discriminator output for fake images
-                    lossD_fake = self.criterion(
+                    loss_d_fake = self.criterion(
                         discriminator_fake, torch.zeros_like(discriminator_fake)
                     )  # Calculate the loss for fake images
-                    lossD = (
-                        lossD_real + lossD_fake
+                    loss_discriminator = (
+                        loss_d_real + loss_d_fake
                     ) / 2  # Calculate the average loss for the discriminator
 
                     self.discriminator.zero_grad()  # Zero the gradients
-                    lossD.backward(
+                    loss_discriminator.backward(
                         retain_graph=True
                     )  # Backward pass for the discriminator
                     self.opt_disc.step()  # Update the discriminator weights
@@ -222,16 +238,16 @@ class SimpleGAN:
                     output = self.discriminator(fake).view(
                         -1
                     )  # Get the discriminator output for fake images
-                    lossG = self.criterion(
+                    loss_generator = self.criterion(
                         output, torch.ones_like(output)
                     )  # Calculate the loss for the generator
                     self.generator.zero_grad()  # Zero the gradients
-                    lossG.backward()  # Backward pass for the generator
+                    loss_generator.backward()  # Backward pass for the generator
                     self.opt_gen.step()  # Update the generator weights
 
                     if batch_idx == 0:
                         print(
-                            f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {lossD:.8f}, Loss Generator: {lossG:.8f}"
+                            f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {loss_discriminator:.8f}, Loss Generator: {loss_generator:.8f}"
                         )
 
                         with torch.no_grad():  # Save the generated images to tensorboard
@@ -272,7 +288,7 @@ class SimpleGAN:
 
     def save_model_for_training(self):
         """
-        Save the model for training. By training we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
+        Save the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
         resuming the training later on. We will save the model's state dict, optimizer's state dict and the current epoch number.
         """
         model_save_path = (
@@ -295,7 +311,7 @@ class SimpleGAN:
 
     def load_model_for_training(self):
         """
-        Load the model for training. By training we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
+        Load the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
         resuming the training later on. We will load the model's state dict, optimizer's state dict and the current epoch number.
         """
 
@@ -318,7 +334,7 @@ class SimpleGAN:
 
     def save_model_for_inference(self):
         """
-        Save the model for inference. By inference we mean that we will only need the model's state dict to be saved for
+        Save the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
         generating images later on. We will save the model's state dict.
         """
         model_save_path = (
@@ -333,7 +349,7 @@ class SimpleGAN:
 
     def load_model_for_inference(self):
         """
-        Load the model for inference. By inference we mean that we will only need the model's state dict to be saved for
+        Load the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
         generating images later on. We will load the model's state dict.
         """
 
