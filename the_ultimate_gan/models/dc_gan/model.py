@@ -27,6 +27,7 @@ dataset_map = {
     "celeba": datasets.CelebA,
 }
 
+
 class DCGAN:
     """Generative Adversarial Network based model to generate images from random noise.
 

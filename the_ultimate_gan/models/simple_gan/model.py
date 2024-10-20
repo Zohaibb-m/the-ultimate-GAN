@@ -24,6 +24,7 @@ dataset_map = {
     "cifar10": datasets.CIFAR10,
 }
 
+
 class SimpleGAN:
     """Generative Adversarial Network based model to generate images from random noise.
 
