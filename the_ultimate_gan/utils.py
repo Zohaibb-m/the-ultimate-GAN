@@ -4,7 +4,6 @@ import torch
 from torch import nn
 from torchinfo import summary
 
-
 def weights_init(m):
     """
     This function uses the technique discussed in the DC Gan's paper to initialize weights with a specific mean and std.
@@ -20,7 +19,6 @@ def weights_init(m):
     elif class_name.find("BatchNorm") != -1:
         nn.init.normal_(m.weight.data, 1.0, 0.02)
         nn.init.constant_(m.bias.data, 0)
-
 
 def get_model_summary(summary_model, input_shape) -> summary:
     """
@@ -41,9 +39,14 @@ def get_model_summary(summary_model, input_shape) -> summary:
         row_settings=["var_names"],
     )
 
-
 def save_model_for_training(
-    checkpoint_root_dir, dataset_name, current_epoch, generator_state_dict, discriminator_state_dict, opt_gen_state_dict, opt_disc_state_dict
+    checkpoint_root_dir,
+    dataset_name,
+    current_epoch,
+    generator_state_dict,
+    discriminator_state_dict,
+    opt_gen_state_dict,
+    opt_disc_state_dict,
 ):
     """
     Save the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
@@ -65,7 +68,6 @@ def save_model_for_training(
     # Save the checkpoint
     torch.save(checkpoint, model_save_path)
 
-
 def load_model_for_training(checkpoint_root_dir, dataset_name, class_name, device):
     """
     Load the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
@@ -78,7 +80,6 @@ def load_model_for_training(checkpoint_root_dir, dataset_name, class_name, devic
         return
     # Load the checkpoint and return it
     return torch.load(model_save_path, map_location=device)
-
 
 def save_model_for_inference(checkpoint_root_dir, dataset_name, generator_state_dict):
     """
@@ -93,7 +94,6 @@ def save_model_for_inference(checkpoint_root_dir, dataset_name, generator_state_
 
     torch.save(generator_state_dict, model_save_path)
 
-
 def load_model_for_inference(checkpoint_root_dir, dataset_name, class_name, device):
     """
     Load the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
@@ -107,7 +107,6 @@ def load_model_for_inference(checkpoint_root_dir, dataset_name, class_name, devi
     model = torch.load(model_save_path, map_location=device)
     print(f"Model loaded for inference for {class_name} with {dataset_name} dataset.")
     return model
-
 
 def generate_images(num_images, generator, class_name, latent_dim, device, orig_shape):
     """
@@ -135,3 +134,24 @@ def generate_images(num_images, generator, class_name, latent_dim, device, orig_
             f"generated_images/{class_name}/generated_image_{i}.png",
             img,
         )
+
+def gradient_penalty(critic, real, fake, device="cpu"):
+    batch_size, channels, height, width = real.shape
+    alpha = torch.rand((batch_size, 1, 1, 1)).repeat(1, channels, height, width).to(device)
+    interpolated_images = real * alpha + fake * (1 - alpha)
+
+    # Calculate critic scores
+    mixed_scores = critic(interpolated_images)
+
+    # Take the gradient of the scores with respect to the images
+    gradient = torch.autograd.grad(
+        inputs=interpolated_images,
+        outputs=mixed_scores,
+        grad_outputs=torch.ones_like(mixed_scores),
+        create_graph=True,
+        retain_graph=True,
+    )[0]
+    gradient = gradient.view(gradient.shape[0], -1)
+    gradient_norm = gradient.norm(2, dim=1)
+    grad_pen = torch.mean((gradient_norm - 1) ** 2)
+    return grad_pen
