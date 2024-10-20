@@ -3,8 +3,9 @@ import click
 from the_ultimate_gan.models.simple_gan.model import SimpleGAN
 from the_ultimate_gan.models.dc_gan.model import DCGAN
 from the_ultimate_gan.models.w_gan.model import WGAN
+from the_ultimate_gan.models.w_gan_gp.model import WGANGP
 
-model_map = {"s-gan": SimpleGAN, "dc-gan": DCGAN, "w-gan": WGAN}
+model_map = {"s-gan": SimpleGAN, "dc-gan": DCGAN, "w-gan": WGAN, "w-gan-gp": WGANGP}
 
 @click.group()
 def tugan():
@@ -19,7 +20,7 @@ def tugan():
     "-m",
     required=True,
     help="The GAN Model you want to train",
-    type=click.Choice(["s-gan", "dc-gan", "w-gan"]),
+    type=click.Choice(["s-gan", "dc-gan", "w-gan", "w-gan-gp"]),
 )
 @click.option(
     "--dataset",
