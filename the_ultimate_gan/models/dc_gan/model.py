@@ -17,7 +17,13 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from the_ultimate_gan.models.dc_gan.layers import Discriminator, Generator
-from the_ultimate_gan.utils import weights_init, save_model_for_training, load_model_for_training, save_model_for_inference, load_model_for_inference
+from the_ultimate_gan.utils import (
+    weights_init,
+    save_model_for_training,
+    load_model_for_training,
+    save_model_for_inference,
+    load_model_for_inference,
+)
 
 dataset_map = {
     "mnist": datasets.MNIST,
@@ -26,7 +32,6 @@ dataset_map = {
     "cifar100": datasets.CIFAR100,
     "celeba": datasets.CelebA,
 }
-
 
 class DCGAN:
     """Generative Adversarial Network based model to generate images from random noise.

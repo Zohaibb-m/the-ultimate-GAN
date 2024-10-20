@@ -18,7 +18,13 @@ from torchinfo import summary
 from tqdm import tqdm
 
 from the_ultimate_gan.models.w_gan.layers import Critic, Generator
-from the_ultimate_gan.utils import weights_init, save_model_for_training, load_model_for_training, save_model_for_inference, load_model_for_inference
+from the_ultimate_gan.utils import (
+    weights_init,
+    save_model_for_training,
+    load_model_for_training,
+    save_model_for_inference,
+    load_model_for_inference,
+)
 
 dataset_map = {
     "mnist": datasets.MNIST,
@@ -27,7 +33,6 @@ dataset_map = {
     "cifar100": datasets.CIFAR100,
     "celeba": datasets.CelebA,
 }
-
 
 class WGAN:
     """Generative Adversarial Network based model to generate images from random noise.
@@ -93,6 +98,7 @@ class WGAN:
         self.latent_dim = latent_dim
         self.batch_size = batch_size
         self.num_epochs = num_epochs
+        self.learning_rate = learning_rate
         self.checkpoint_interval = checkpoint_interval
         self.resume_training = resume_training
         self.critic_steps = 5
@@ -120,7 +126,7 @@ class WGAN:
         # Set the seed for reproducibility
         torch.manual_seed(42)
         # Generate fixed noise for generating images later
-        self.fixed_noise = torch.randn((self.batch_size, self.latent_dim, 1, 1)).to(self.device)
+        self.fixed_noise = torch.randn((64, self.latent_dim, 1, 1)).to(self.device)
 
         if dataset not in dataset_map:
             print(f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}")
@@ -137,7 +143,7 @@ class WGAN:
 
         self.init_critic(self.out_channels)  # Initialize the critic
 
-        self.init_optimizers(learning_rate)  # Initialize the optimizers
+        self.init_optimizers(self.learning_rate)  # Initialize the optimizers
 
         self.init_summary_writers()  # Initialize the tensorboard writers
 

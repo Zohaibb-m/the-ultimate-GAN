@@ -17,14 +17,18 @@ from torch.utils.tensorboard import SummaryWriter
 from the_ultimate_gan.models.simple_gan.layers import Discriminator, Generator
 from tqdm import tqdm
 
-from the_ultimate_gan.utils import save_model_for_training, load_model_for_training, save_model_for_inference, load_model_for_inference
+from the_ultimate_gan.utils import (
+    save_model_for_training,
+    load_model_for_training,
+    save_model_for_inference,
+    load_model_for_inference,
+)
 
 dataset_map = {
     "mnist": datasets.MNIST,
     "fashion-mnist": datasets.FashionMNIST,
     "cifar10": datasets.CIFAR10,
 }
-
 
 class SimpleGAN:
     """Generative Adversarial Network based model to generate images from random noise.
