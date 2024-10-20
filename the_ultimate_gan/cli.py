@@ -2,9 +2,9 @@ import click
 
 from the_ultimate_gan.models.simple_gan.model import SimpleGAN
 from the_ultimate_gan.models.dc_gan.model import DCGAN
+from the_ultimate_gan.models.w_gan.model import WGAN
 
-model_map = {"s-gan": SimpleGAN, "dc-gan": DCGAN}
-
+model_map = {"s-gan": SimpleGAN, "dc-gan": DCGAN, "w-gan": WGAN}
 
 @click.group()
 def tugan():
@@ -13,14 +13,13 @@ def tugan():
     Learn, Train and explore Generative Adversarial Networks.
     """
 
-
 @tugan.command(no_args_is_help=True)
 @click.option(
     "--model-name",
     "-m",
     required=True,
     help="The GAN Model you want to train",
-    type=click.Choice(["s-gan", "dc-gan"]),
+    type=click.Choice(["s-gan", "dc-gan", "w-gan"]),
 )
 @click.option(
     "--dataset",
@@ -88,7 +87,6 @@ def train(
         model.train()
     except Exception as e:
         print(f"Model Training interrupted due to an error.")
-
 
 if __name__ == "__main__":
     tugan()
