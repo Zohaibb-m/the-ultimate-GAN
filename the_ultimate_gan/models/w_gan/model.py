@@ -18,7 +18,7 @@ from torchinfo import summary
 from tqdm import tqdm
 
 from the_ultimate_gan.models.w_gan.layers import Critic, Generator
-from the_ultimate_gan.utils import weights_init
+from the_ultimate_gan.utils import weights_init, save_model_for_training, load_model_for_training, save_model_for_inference, load_model_for_inference
 
 dataset_map = {
     "mnist": datasets.MNIST,
@@ -27,6 +27,7 @@ dataset_map = {
     "cifar100": datasets.CIFAR100,
     "celeba": datasets.CelebA,
 }
+
 
 class WGAN:
     """Generative Adversarial Network based model to generate images from random noise.
@@ -246,123 +247,29 @@ class WGAN:
             self.save_model_for_training()
 
     def save_model_for_training(self):
-        """
-        Save the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
-        resuming the training later on. We will save the model's state dict, optimizer's state dict and the current epoch number.
-        """
-        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
-        # Create the directory if it does not exist
-        if not os.path.exists(self.checkpoint_root_dir):
-            os.makedirs(self.checkpoint_root_dir)
-
-        # Make the checkpoint dictionary
-        checkpoint = {
-            "epoch": self.current_epoch,
-            "generator_state_dict": self.generator.state_dict(),
-            "critic_state_dict": self.critic.state_dict(),
-            "opt_gen_state_dict": self.opt_gen.state_dict(),
-            "opt_critic_state_dict": self.opt_critic.state_dict(),
-        }
-        # Save the checkpoint
-        torch.save(checkpoint, model_save_path)
+        save_model_for_training(
+            self.checkpoint_root_dir,
+            self.dataset_name,
+            self.current_epoch,
+            self.generator.state_dict(),
+            self.critic.state_dict(),
+            self.opt_gen.state_dict(),
+            self.opt_critic.state_dict(),
+        )
 
     def load_model_for_training(self):
-        """
-        Load the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
-        resuming the training later on. We will load the model's state dict, optimizer's state dict and the current epoch number.
-        """
-
-        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
-        if not os.path.exists(model_save_path):
-            print(f"No saved model found for W GAN with {self.dataset_name} dataset. Skipping the loading.")
-            return
-        # Load the checkpoint
-        checkpoint = torch.load(model_save_path)
+        checkpoint = load_model_for_training(self.checkpoint_root_dir, self.dataset_name, self.__class__.__name__, self.device)
         self.generator.load_state_dict(checkpoint["generator_state_dict"])
-        self.critic.load_state_dict(checkpoint["critic_state_dict"])
+        self.critic.load_state_dict(checkpoint["discriminator_state_dict"])
         self.opt_gen.load_state_dict(checkpoint["opt_gen_state_dict"])
-        self.opt_critic.load_state_dict(checkpoint["opt_critic_state_dict"])
+        self.opt_critic.load_state_dict(checkpoint["opt_disc_state_dict"])
         self.current_epoch = checkpoint["epoch"]
         print("Model loaded for training.")
 
     def save_model_for_inference(self):
-        """
-        Save the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
-        generating images later on. We will save the model's state dict.
-        """
-        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
-
-        # Create the directory if it does not exist
-        if not os.path.exists(self.checkpoint_root_dir):
-            os.makedirs(self.checkpoint_root_dir)
-
-        torch.save(self.generator.state_dict(), model_save_path)
+        save_model_for_inference(self.checkpoint_root_dir, self.dataset_name, self.generator.state_dict())
 
     def load_model_for_inference(self):
-        """
-        Load the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
-        generating images later on. We will load the model's state dict.
-        """
-
-        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
-        if not os.path.exists(model_save_path):
-            print(f"No saved model found for W GAN with {self.dataset_name} dataset. Skipping the loading.")
-            return
-        self.generator.load_state_dict(torch.load(model_save_path))
-        print(f"Model loaded for inference for W GAN with {self.dataset_name} dataset.")
-
-    def generate_images(self, num_images: int):
-        """
-        Generate images using the trained model.
-
-        This method generates images using the trained generator model.
-        It generates the specified number of images using the fixed noise.
-        The generated images are saved to the "generated_images" folder.
-        """
-        import matplotlib.pyplot as plt
-
-        if not os.path.exists("generated_images"):
-            os.makedirs("generated_images")
-
-        if not os.path.exists(f"generated_images/{self.__class__.__name__}"):
-            os.makedirs(f"generated_images/{self.__class__.__name__}")
-
-        # Load the model for inference if available
-        self.load_model_for_inference()
-
-        for i in range(num_images):
-            noise = torch.randn(1, self.latent_dim).to(self.device)
-            img = self.generator(noise)
-            img = img.detach().cpu().numpy()
-            img = img.squeeze()
-            # Save the generated image
-            plt.imsave(
-                f"generated_images/{self.__class__.__name__}/generated_image_{i}.png",
-                img,
-            )
-
-    @staticmethod
-    def get_model_summary(summary_model, input_shape) -> summary:
-        """
-        Find the model summary (parameters, input shape, output shape, trainable parameters etc.)
-        Args:
-            summary_model (nn.Module): The model for which we want to print the summary details
-            input_shape (shape): The input shape that the model takes
-
-        Returns:
-            A summary object with the model details in it
-        """
-        return summary(
-            summary_model,
-            input_size=input_shape,
-            verbose=0,
-            col_names=["input_size", "output_size", "num_params", "trainable"],
-            col_width=20,
-            row_settings=["var_names"],
-        )
-
-if __name__ == "__main__":
-    model = WGAN(5e-5, 100, 128, 20, "mnist", 100, False)
-    # print(model.get_model_summary(model.generator, (1, 100, 1, 1)))
-    # print(model.get_model_summary(model.critic, (1, 1, 64, 64)))
-    model.train()
+        generator_state_dict = load_model_for_inference(self.checkpoint_root_dir, self.dataset_name, self.__class__.__name__, self.device)
+        self.generator.load_state_dict(generator_state_dict)
+        print(f"Model loaded for inference for Simple GAN with {self.dataset_name} dataset.")
