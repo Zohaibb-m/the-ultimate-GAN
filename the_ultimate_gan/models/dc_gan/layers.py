@@ -11,7 +11,6 @@ import torch
 from torch import nn
 from torchinfo import summary
 
-
 class Generator(nn.Module):
     """
     Generator Module for the DC GAN.
@@ -47,16 +46,12 @@ class Generator(nn.Module):
             *self.generator_block(mid_channels * 8, mid_channels * 4),
             *self.generator_block(mid_channels * 4, mid_channels * 2),
             *self.generator_block(mid_channels * 2, mid_channels),
-            nn.ConvTranspose2d(
-                mid_channels, out_channels, kernel_size=4, stride=2, padding=1
-            ),
+            nn.ConvTranspose2d(mid_channels, out_channels, kernel_size=4, stride=2, padding=1),
             nn.Tanh()
         )
 
     @staticmethod
-    def generator_block(
-        in_channels, out_channels, kernel=4, stride=2, padding=1, normalize=True
-    ) -> nn.Sequential:
+    def generator_block(in_channels, out_channels, kernel=4, stride=2, padding=1, normalize=True) -> nn.Sequential:
         """
         Generator Block for the Generator Model.
 
@@ -100,7 +95,6 @@ class Generator(nn.Module):
             torch.Tensor: Output tensor of shape (batch_size, output_channels, 64, 64).
         """
         return self.model(x)
-
 
 class Discriminator(nn.Module):
     """
@@ -174,10 +168,3 @@ class Discriminator(nn.Module):
             torch.Tensor: Output tensor of shape (batch_size, 1, 1, 1).
         """
         return self.model(x)
-
-
-if __name__ == "__main__":
-    input_x = torch.rand((128, 3, 64, 64))
-    disc = Discriminator(3, 64, 1)
-    print()
-    print(disc(input_x).shape)

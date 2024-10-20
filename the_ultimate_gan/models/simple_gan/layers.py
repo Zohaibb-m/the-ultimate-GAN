@@ -10,7 +10,6 @@ Classes:
 import torch
 from torch import nn
 
-
 class Generator(nn.Module):
     """
     Generator Module for the Simple GAN.
@@ -42,9 +41,7 @@ class Generator(nn.Module):
         )
 
     @staticmethod
-    def generator_block(
-        input_size: int, output_size: int, normalize: bool = True
-    ) -> nn.Sequential:
+    def generator_block(input_size: int, output_size: int, normalize: bool = True) -> nn.Sequential:
         """
         Generator Block for the Generator Model.
 
@@ -79,7 +76,6 @@ class Generator(nn.Module):
             torch.Tensor: Output tensor of shape (batch_size, img_dim).
         """
         return self.model(x)
-
 
 class Discriminator(nn.Module):
     """

@@ -1,8 +1,8 @@
 """
-This module defines the SimpleGAN model architecture and its different functions.
+This module defines the DCGAN model architecture and its different functions.
 
 Class:
-    SimpleGAN: A class that implements the SimpleGAN Model
+    DCGAN: A class that implements the DCGAN Model
 """
 
 import torch
@@ -14,9 +14,10 @@ from torch import optim
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchinfo import summary
-from the_ultimate_gan.models.dc_gan.layers import Discriminator, Generator
 from tqdm import tqdm
+
+from the_ultimate_gan.models.dc_gan.layers import Discriminator, Generator
+from the_ultimate_gan.utils import weights_init
 
 dataset_map = {
     "mnist": datasets.MNIST,
@@ -26,11 +27,10 @@ dataset_map = {
     "celeba": datasets.CelebA,
 }
 
-
 class DCGAN:
     """Generative Adversarial Network based model to generate images from random noise.
 
-    This class implements the Simple GAN model which is used to generate images from random noise.
+    This class implements the DC GAN model which is used to generate images from random noise.
     It uses a Generator and Discriminator model to train the GAN and generate images.
 
     Attributes:
@@ -71,7 +71,7 @@ class DCGAN:
         resume_training: bool,
     ):
         """
-        Initialize the Simple GAN model.
+        Initialize the DC GAN model.
 
         Args:
             learning_rate (float): The learning rate for the optimizer.
@@ -87,23 +87,14 @@ class DCGAN:
         self.opt_gen = None
         self.opt_disc = None
         self.discriminator = None
-        if dataset not in dataset_map:
-            print(
-                f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}"
-            )
-            raise Exception
         self.generator = None
-        self.device = torch.device(
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() else "cpu"
-        )
+
         self.latent_dim = latent_dim
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.checkpoint_interval = checkpoint_interval
         self.resume_training = resume_training
-        self.checkpoint_root_dir = "the_ultimate_gan/checkpoints/dc_gan"
+        self.checkpoint_root_dir = f"the_ultimate_gan/checkpoints/{self.__class__.__name__}"
         self.out_channels = 3 if dataset not in ["mnist", "fashion-mnist"] else 1
         # Define the transforms
         self.transform = transforms.Compose(
@@ -111,27 +102,26 @@ class DCGAN:
                 transforms.Resize(64),
                 transforms.CenterCrop(64),
                 transforms.ToTensor(),
-                (
-                    transforms.Normalize(
-                        [0.5 for _ in range(self.out_channels)],
-                        [0.5 for _ in range(self.out_channels)],
-                    )
+                transforms.Normalize(
+                    [0.5 for _ in range(self.out_channels)],
+                    [0.5 for _ in range(self.out_channels)],
                 ),
             ]
         )
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+
         # Set the seed for reproducibility
         torch.manual_seed(42)
         # Generate fixed noise for generating images later
-        self.fixed_noise = torch.randn((self.batch_size, self.latent_dim, 1, 1)).to(
-            self.device
-        )
+        self.fixed_noise = torch.randn((self.batch_size, self.latent_dim, 1, 1)).to(self.device)
 
         self.dataset_name = dataset  # Get the dataset name
         # Load the dataset
-        self.dataset = dataset_map[dataset](
-            root="Data/", transform=self.transform, download=True
-        )
+        self.dataset = dataset_map[dataset](root="Data/", transform=self.transform, download=True)
+        if dataset not in dataset_map:
+            print(f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}")
+            raise Exception
 
         # Create a data loader
         self.loader = DataLoader(self.dataset, batch_size=self.batch_size, shuffle=True)
@@ -152,35 +142,29 @@ class DCGAN:
         )
 
     def init_generator(self, latent_dim, out_channels):
-        self.generator = Generator(latent_dim, 64, out_channels).to(
-            self.device
-        )  # Initialize the generator
+        # Initialize the generator
+        self.generator = Generator(latent_dim, 64, out_channels).to(self.device)
         self.generator.apply(weights_init)
 
     def init_discriminator(self, in_channels):
-        self.discriminator = Discriminator(in_channels, 64, 1).to(
-            self.device
-        )  # Initialize the discriminator
+        # Initialize the discriminator
+        self.discriminator = Discriminator(in_channels, 64, 1).to(self.device)
         self.discriminator.apply(weights_init)
 
     def init_optimizers(self, learning_rate):
-        self.opt_disc = optim.Adam(
-            self.discriminator.parameters(), lr=learning_rate, betas=(0.5, 0.999)
-        )  # Initialize the discriminator optimizer
-        self.opt_gen = optim.Adam(
-            self.generator.parameters(), lr=learning_rate, betas=(0.5, 0.999)
-        )  # Initialize the generator optimizer
+        # Initialize the discriminator optimizer
+        self.opt_disc = optim.Adam(self.discriminator.parameters(), lr=learning_rate, betas=(0.5, 0.999))
+        # Initialize the generator optimizer
+        self.opt_gen = optim.Adam(self.generator.parameters(), lr=learning_rate, betas=(0.5, 0.999))
 
     def init_loss_fn(self):
         self.criterion = nn.BCELoss()  # Initialize the loss function
 
     def init_summary_writers(self):
-        self.writer_fake = SummaryWriter(
-            f"runs/GAN_{self.dataset_name}/fake"
-        )  # Initialize the tensorboard writer for fake images
-        self.writer_real = SummaryWriter(
-            f"runs/GAN_{self.dataset_name}/real"
-        )  # Initialize the tensorboard writer for real images
+        # Initialize the tensorboard writer for fake images
+        self.writer_fake = SummaryWriter(f"runs/DCGAN/GAN_{self.dataset_name}/fake")
+        # Initialize the tensorboard writer for real images
+        self.writer_real = SummaryWriter(f"runs/DCGAN/GAN_{self.dataset_name}/real")
 
     def train(self):
         """
@@ -195,67 +179,45 @@ class DCGAN:
             self.current_epoch = 1  # Initialize the current epoch
             if self.resume_training:
                 self.load_model_for_training()
-            while (
-                self.current_epoch <= self.num_epochs
-            ):  # Loop over the dataset multiple times
-                for batch_idx, (real, _) in enumerate(
-                    tqdm(self.loader)
-                ):  # Get the inputs; data is a list of [inputs, labels]
+            while self.current_epoch <= self.num_epochs:  # Loop over the dataset multiple times
+                for batch_idx, (real, _) in enumerate(tqdm(self.loader)):  # Get the inputs; data is a list of [inputs, labels]
                     real = real.to(self.device)  # Move the data to the device
                     batch_size = real.shape[0]  # Get the batch size
 
-                    noise = torch.randn((batch_size, self.latent_dim, 1, 1)).to(
-                        self.device
-                    )  # Generate random noise
+                    # Generate random noise
+                    noise = torch.randn((batch_size, self.latent_dim, 1, 1)).to(self.device)
                     fake = self.generator(noise)  # Generate fake images
 
                     discriminator_real = self.discriminator(real)
-                    loss_d_real = self.criterion(
-                        discriminator_real, torch.ones_like(discriminator_real)
-                    )  # Calculate the loss for real images
+                    # Calculate the loss for real images
+                    loss_d_real = self.criterion(discriminator_real, torch.ones_like(discriminator_real))
 
-                    discriminator_fake = self.discriminator(fake).view(
-                        -1
-                    )  # Get the discriminator output for fake images
-                    loss_d_fake = self.criterion(
-                        discriminator_fake, torch.zeros_like(discriminator_fake)
-                    )  # Calculate the loss for fake images
-                    loss_discriminator = (
-                        loss_d_real + loss_d_fake
-                    ) / 2  # Calculate the average loss for the discriminator
+                    discriminator_fake = self.discriminator(fake).view(-1)  # Get the discriminator output for fake images
+
+                    # Calculate the loss for fake images
+                    loss_d_fake = self.criterion(discriminator_fake, torch.zeros_like(discriminator_fake))
+
+                    # Calculate the average loss for the discriminator
+                    loss_discriminator = (loss_d_real + loss_d_fake) / 2
 
                     self.discriminator.zero_grad()  # Zero the gradients
-                    loss_discriminator.backward(
-                        retain_graph=True
-                    )  # Backward pass for the discriminator
+                    loss_discriminator.backward(retain_graph=True)  # Backward pass for the discriminator
                     self.opt_disc.step()  # Update the discriminator weights
 
-                    output = self.discriminator(fake).view(
-                        -1
-                    )  # Get the discriminator output for fake images
-                    loss_generator = self.criterion(
-                        output, torch.ones_like(output)
-                    )  # Calculate the loss for the generator
+                    output = self.discriminator(fake).view(-1)  # Get the discriminator output for fake images
+                    loss_generator = self.criterion(output, torch.ones_like(output))  # Calculate the loss for the generator
                     self.generator.zero_grad()  # Zero the gradients
                     loss_generator.backward()  # Backward pass for the generator
                     self.opt_gen.step()  # Update the generator weights
 
                     if batch_idx == 0:
-                        print(
-                            f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {loss_discriminator:.8f}, Loss Generator: {loss_generator:.8f}"
-                        )
+                        print(f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {loss_discriminator:.8f}, Loss Generator: {loss_generator:.8f}")
 
                         with torch.no_grad():  # Save the generated images to tensorboard
-                            fake = self.generator(
-                                self.fixed_noise
-                            )  # Generate fake images
+                            fake = self.generator(self.fixed_noise)  # Generate fake images
                             data = real  # Get the real images
-                            img_grid_fake = torchvision.utils.make_grid(
-                                fake, normalize=True
-                            )  # Create a grid of fake images
-                            img_grid_real = torchvision.utils.make_grid(
-                                data, normalize=True
-                            )  # Create a grid of real images
+                            img_grid_fake = torchvision.utils.make_grid(fake, normalize=True)  # Create a grid of fake images
+                            img_grid_real = torchvision.utils.make_grid(data, normalize=True)  # Create a grid of real images
 
                             self.writer_fake.add_image(
                                 f"{self.dataset_name} Fake Images",
@@ -273,9 +235,7 @@ class DCGAN:
                     print(f"Model saved at epoch {self.current_epoch} for inference.")
                 self.current_epoch += 1  # Increment the epoch
         except Exception as e:
-            print(
-                f"An error occurred during training: {e}. Saving the model for training."
-            )
+            print(f"An error occurred during training: {e}. Saving the model for training.")
         except KeyboardInterrupt:
             print("Training interrupted. Saving the model for training.")
         finally:
@@ -286,9 +246,7 @@ class DCGAN:
         Save the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
         resuming the training later on. We will save the model's state dict, optimizer's state dict and the current epoch number.
         """
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
         # Create the directory if it does not exist
         if not os.path.exists(self.checkpoint_root_dir):
             os.makedirs(self.checkpoint_root_dir)
@@ -310,13 +268,9 @@ class DCGAN:
         resuming the training later on. We will load the model's state dict, optimizer's state dict and the current epoch number.
         """
 
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
         if not os.path.exists(model_save_path):
-            print(
-                f"No saved model found for Simple GAN with {self.dataset_name} dataset. Skipping the loading."
-            )
+            print(f"No saved model found for DC GAN with {self.dataset_name} dataset. Skipping the loading.")
             return
         # Load the checkpoint
         checkpoint = torch.load(model_save_path)
@@ -332,9 +286,7 @@ class DCGAN:
         Save the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
         generating images later on. We will save the model's state dict.
         """
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
 
         # Create the directory if it does not exist
         if not os.path.exists(self.checkpoint_root_dir):
@@ -348,18 +300,12 @@ class DCGAN:
         generating images later on. We will load the model's state dict.
         """
 
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
         if not os.path.exists(model_save_path):
-            print(
-                f"No saved model found for Simple GAN with {self.dataset_name} dataset. Skipping the loading."
-            )
+            print(f"No saved model found for DC GAN with {self.dataset_name} dataset. Skipping the loading.")
             return
         self.generator.load_state_dict(torch.load(model_save_path))
-        print(
-            f"Model loaded for inference for Simple GAN with {self.dataset_name} dataset."
-        )
+        print(f"Model loaded for inference for DC GAN with {self.dataset_name} dataset.")
 
     def generate_images(self, num_images: int):
         """
@@ -374,8 +320,8 @@ class DCGAN:
         if not os.path.exists("generated_images"):
             os.makedirs("generated_images")
 
-        if not os.path.exists("generated_images/dc_gan"):
-            os.makedirs("generated_images/dc_gan")
+        if not os.path.exists(f"generated_images/{self.__class__.__name__}"):
+            os.makedirs(f"generated_images/{self.__class__.__name__}")
 
         # Load the model for inference if available
         self.load_model_for_inference()
@@ -386,46 +332,7 @@ class DCGAN:
             img = img.detach().cpu().numpy()
             img = img.squeeze()
             # Save the generated image
-            plt.imsave(f"generated_images/dc_gan/generated_image_{i}.png", img)
-
-    @staticmethod
-    def get_model_summary(summary_model, input_shape) -> summary:
-        """
-        Find the model summary (parameters, input shape, output shape, trainable parameters etc.)
-        Args:
-            summary_model (nn.Module): The model for which we want to print the summary details
-            input_shape (shape): The input shape that the model takes
-
-        Returns:
-            A summary object with the model details in it
-        """
-        return summary(
-            summary_model,
-            input_size=input_shape,
-            verbose=0,
-            col_names=["input_size", "output_size", "num_params", "trainable"],
-            col_width=20,
-            row_settings=["var_names"],
-        )
-
-
-def weights_init(m):
-    """
-    This function uses the technique discussed in the DC Gan's paper to initialize weights with a specific mean and std.
-    Args:
-        m: The model to initialize the weights for
-
-    Returns:
-        None
-    """
-    class_name = m.__class__.__name__
-    if class_name.find("Conv") != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif class_name.find("BatchNorm") != -1:
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
-
-
-if __name__ == "__main__":
-    model = DCGAN(2e-4, 100, 128, 50, "mnist", 100, False)
-    model.train()
+            plt.imsave(
+                f"generated_images/{self.__class__.__name__}/generated_image_{i}.png",
+                img,
+            )

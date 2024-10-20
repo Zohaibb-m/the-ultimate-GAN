@@ -24,7 +24,6 @@ dataset_map = {
     "cifar10": datasets.CIFAR10,
 }
 
-
 class SimpleGAN:
     """Generative Adversarial Network based model to generate images from random noise.
 
@@ -89,49 +88,35 @@ class SimpleGAN:
         self.opt_gen = None
         self.criterion = None
 
-        self.device = torch.device(
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() else "cpu"
-        )
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
         self.latent_dim = latent_dim
         self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.checkpoint_interval = checkpoint_interval
         self.resume_training = resume_training
-        self.checkpoint_root_dir = "the_ultimate_gan/checkpoints/simple_gan"
+        self.checkpoint_root_dir = f"the_ultimate_gan/checkpoints/{self.__class__.__name__}"
 
         if dataset not in dataset_map:
-            print(
-                f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}"
-            )
+            print(f"Dataset: {dataset} not available for {self.__class__.__name__} Model. Try from {list(dataset_map.keys())}")
             raise Exception
 
         # Define the transforms
-        self.transform = transforms.Compose(
-            [transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))]
-        )
+        self.transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
 
         # Set the seed for reproducibility
         torch.manual_seed(42)
         # Generate fixed noise for generating images later
-        self.fixed_noise = torch.randn((self.batch_size, self.latent_dim)).to(
-            self.device
-        )
+        self.fixed_noise = torch.randn((self.batch_size, self.latent_dim)).to(self.device)
 
         self.dataset_name = dataset  # Get the dataset name
         # Load the dataset
-        self.dataset = dataset_map[dataset](
-            root="Data/", transform=self.transform, download=True
-        )
+        self.dataset = dataset_map[dataset](root="Data/", transform=self.transform, download=True)
 
         self.image_shape = self.dataset.data[0].shape  # Get the shape of the images
 
         # Get the original shape of the images
         self.orig_shape = (
-            (-1, self.image_shape[2], self.image_shape[1], self.image_shape[0])
-            if len(self.image_shape) > 2
-            else (-1, 1, self.image_shape[1], self.image_shape[0])
+            (-1, self.image_shape[2], self.image_shape[1], self.image_shape[0]) if len(self.image_shape) > 2 else (-1, 1, self.image_shape[1], self.image_shape[0])
         )
 
         # Create a data loader
@@ -155,33 +140,21 @@ class SimpleGAN:
         )
 
     def init_generator(self, latent_dim, image_dim):
-        self.generator = Generator(latent_dim, image_dim).to(
-            self.device
-        )  # Initialize the generator
+        self.generator = Generator(latent_dim, image_dim).to(self.device)  # Initialize the generator
 
     def init_discriminator(self, image_dim):
-        self.discriminator = Discriminator(image_dim).to(
-            self.device
-        )  # Initialize the discriminator
+        self.discriminator = Discriminator(image_dim).to(self.device)  # Initialize the discriminator
 
     def init_optimizers(self, learning_rate):
-        self.opt_disc = optim.Adam(
-            self.discriminator.parameters(), lr=learning_rate
-        )  # Initialize the discriminator optimizer
-        self.opt_gen = optim.Adam(
-            self.generator.parameters(), lr=learning_rate
-        )  # Initialize the generator optimizer
+        self.opt_disc = optim.Adam(self.discriminator.parameters(), lr=learning_rate)  # Initialize the discriminator optimizer
+        self.opt_gen = optim.Adam(self.generator.parameters(), lr=learning_rate)  # Initialize the generator optimizer
 
     def init_loss_fn(self):
         self.criterion = nn.BCELoss()  # Initialize the loss function
 
     def init_summary_writers(self):
-        self.writer_fake = SummaryWriter(
-            f"runs/GAN_{self.dataset_name}/fake"
-        )  # Initialize the tensorboard writer for fake images
-        self.writer_real = SummaryWriter(
-            f"runs/GAN_{self.dataset_name}/real"
-        )  # Initialize the tensorboard writer for real images
+        self.writer_fake = SummaryWriter(f"runs/GAN_{self.dataset_name}/fake")  # Initialize the tensorboard writer for fake images
+        self.writer_real = SummaryWriter(f"runs/GAN_{self.dataset_name}/real")  # Initialize the tensorboard writer for real images
 
     def train(self):
         """
@@ -196,71 +169,39 @@ class SimpleGAN:
             self.current_epoch = 1  # Initialize the current epoch
             if self.resume_training:
                 self.load_model_for_training()
-            while (
-                self.current_epoch <= self.num_epochs
-            ):  # Loop over the dataset multiple times
-                for batch_idx, (real, _) in enumerate(
-                    tqdm(self.loader)
-                ):  # Get the inputs; data is a list of [inputs, labels]
-                    real = real.view(-1, np.prod(self.image_shape)).to(
-                        self.device
-                    )  # Move the data to the device
+            while self.current_epoch <= self.num_epochs:  # Loop over the dataset multiple times
+                for batch_idx, (real, _) in enumerate(tqdm(self.loader)):  # Get the inputs; data is a list of [inputs, labels]
+                    real = real.view(-1, np.prod(self.image_shape)).to(self.device)  # Move the data to the device
                     batch_size = real.shape[0]  # Get the batch size
 
-                    noise = torch.randn(batch_size, self.latent_dim).to(
-                        self.device
-                    )  # Generate random noise
+                    noise = torch.randn(batch_size, self.latent_dim).to(self.device)  # Generate random noise
                     fake = self.generator(noise)  # Generate fake images
 
-                    discriminator_real = self.discriminator(real).view(
-                        -1
-                    )  # Get the discriminator output for real images
-                    loss_d_real = self.criterion(
-                        discriminator_real, torch.ones_like(discriminator_real)
-                    )  # Calculate the loss for real images
+                    discriminator_real = self.discriminator(real).view(-1)  # Get the discriminator output for real images
+                    loss_d_real = self.criterion(discriminator_real, torch.ones_like(discriminator_real))  # Calculate the loss for real images
 
-                    discriminator_fake = self.discriminator(fake).view(
-                        -1
-                    )  # Get the discriminator output for fake images
-                    loss_d_fake = self.criterion(
-                        discriminator_fake, torch.zeros_like(discriminator_fake)
-                    )  # Calculate the loss for fake images
-                    loss_discriminator = (
-                        loss_d_real + loss_d_fake
-                    ) / 2  # Calculate the average loss for the discriminator
+                    discriminator_fake = self.discriminator(fake).view(-1)  # Get the discriminator output for fake images
+                    loss_d_fake = self.criterion(discriminator_fake, torch.zeros_like(discriminator_fake))  # Calculate the loss for fake images
+                    loss_discriminator = (loss_d_real + loss_d_fake) / 2  # Calculate the average loss for the discriminator
 
                     self.discriminator.zero_grad()  # Zero the gradients
-                    loss_discriminator.backward(
-                        retain_graph=True
-                    )  # Backward pass for the discriminator
+                    loss_discriminator.backward(retain_graph=True)  # Backward pass for the discriminator
                     self.opt_disc.step()  # Update the discriminator weights
 
-                    output = self.discriminator(fake).view(
-                        -1
-                    )  # Get the discriminator output for fake images
-                    loss_generator = self.criterion(
-                        output, torch.ones_like(output)
-                    )  # Calculate the loss for the generator
+                    output = self.discriminator(fake).view(-1)  # Get the discriminator output for fake images
+                    loss_generator = self.criterion(output, torch.ones_like(output))  # Calculate the loss for the generator
                     self.generator.zero_grad()  # Zero the gradients
                     loss_generator.backward()  # Backward pass for the generator
                     self.opt_gen.step()  # Update the generator weights
 
                     if batch_idx == 0:
-                        print(
-                            f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {loss_discriminator:.8f}, Loss Generator: {loss_generator:.8f}"
-                        )
+                        print(f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Discriminator: {loss_discriminator:.8f}, Loss Generator: {loss_generator:.8f}")
 
                         with torch.no_grad():  # Save the generated images to tensorboard
-                            fake = self.generator(self.fixed_noise).reshape(
-                                self.orig_shape
-                            )  # Generate fake images
+                            fake = self.generator(self.fixed_noise).reshape(self.orig_shape)  # Generate fake images
                             data = real.reshape(self.orig_shape)  # Get the real images
-                            img_grid_fake = torchvision.utils.make_grid(
-                                fake, normalize=True
-                            )  # Create a grid of fake images
-                            img_grid_real = torchvision.utils.make_grid(
-                                data, normalize=True
-                            )  # Create a grid of real images
+                            img_grid_fake = torchvision.utils.make_grid(fake, normalize=True)  # Create a grid of fake images
+                            img_grid_real = torchvision.utils.make_grid(data, normalize=True)  # Create a grid of real images
 
                             self.writer_fake.add_image(
                                 f"{self.dataset_name} Fake Images",
@@ -278,9 +219,7 @@ class SimpleGAN:
                     print(f"Model saved at epoch {self.current_epoch} for inference.")
                 self.current_epoch += 1  # Increment the epoch
         except Exception as e:
-            print(
-                f"An error occurred during training: {e}. Saving the model for training."
-            )
+            print(f"An error occurred during training: {e}. Saving the model for training.")
         except KeyboardInterrupt:
             print("Training interrupted. Saving the model for training.")
         finally:
@@ -291,9 +230,7 @@ class SimpleGAN:
         Save the model for training. By training, we mean that we will need some extra saved parameters other than the model's state dict to be also saved for
         resuming the training later on. We will save the model's state dict, optimizer's state dict and the current epoch number.
         """
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
         # Create the directory if it does not exist
         if not os.path.exists(self.checkpoint_root_dir):
             os.makedirs(self.checkpoint_root_dir)
@@ -315,13 +252,9 @@ class SimpleGAN:
         resuming the training later on. We will load the model's state dict, optimizer's state dict and the current epoch number.
         """
 
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_training.pt"
         if not os.path.exists(model_save_path):
-            print(
-                f"No saved model found for Simple GAN with {self.dataset_name} dataset. Skipping the loading."
-            )
+            print(f"No saved model found for Simple GAN with {self.dataset_name} dataset. Skipping the loading.")
             return
         # Load the checkpoint
         checkpoint = torch.load(model_save_path)
@@ -337,9 +270,7 @@ class SimpleGAN:
         Save the model for inference. By inference, we mean that we will only need the model's state dict to be saved for
         generating images later on. We will save the model's state dict.
         """
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
 
         # Create the directory if it does not exist
         if not os.path.exists(self.checkpoint_root_dir):
@@ -353,18 +284,12 @@ class SimpleGAN:
         generating images later on. We will load the model's state dict.
         """
 
-        model_save_path = (
-            f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
-        )
+        model_save_path = f"{self.checkpoint_root_dir}/checkpoint_{self.dataset_name}_inference.pt"
         if not os.path.exists(model_save_path):
-            print(
-                f"No saved model found for Simple GAN with {self.dataset_name} dataset. Skipping the loading."
-            )
+            print(f"No saved model found for Simple GAN with {self.dataset_name} dataset. Skipping the loading.")
             return
         self.generator.load_state_dict(torch.load(model_save_path))
-        print(
-            f"Model loaded for inference for Simple GAN with {self.dataset_name} dataset."
-        )
+        print(f"Model loaded for inference for Simple GAN with {self.dataset_name} dataset.")
 
     def generate_images(self, num_images: int):
         """
@@ -379,8 +304,8 @@ class SimpleGAN:
         if not os.path.exists("generated_images"):
             os.makedirs("generated_images")
 
-        if not os.path.exists("generated_images/simple_gan"):
-            os.makedirs("generated_images/simple_gan")
+        if not os.path.exists(f"generated_images/{self.__class__.__name__}"):
+            os.makedirs(f"generated_images/{self.__class__.__name__}")
 
         # Load the model for inference if available
         self.load_model_for_inference()
@@ -392,5 +317,7 @@ class SimpleGAN:
             img = img.squeeze()
             # Save the generated image
             plt.imsave(
-                f"generated_images/simple_gan/generated_image_{i}.png", img, cmap="gray"
+                f"generated_images/{self.__class__.__name__}/generated_image_{i}.png",
+                img,
+                cmap="gray",
             )
