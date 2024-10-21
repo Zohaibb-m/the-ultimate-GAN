@@ -127,13 +127,33 @@ tugan train --model-name w-gan --dataset celeba -lr 0.00005 -ne 50 -bs 128
 
 <hr>
 
+### Wasserstein GAN with gradient penalty
+
+#### Explanation:
+
+The medium article explaining Wasserstein GAN-GP will be available shortly
+
+#### Training
+
+Trained on Nvidia GPU P100 (Average 2.33it/s) with the following configurations:</br>
+Learning Rate: 5e-05, Epochs: 50, Batch Size: 128, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.
+
+```bash
+tugan train --model-name w-gan-gp --dataset cifar10 -lr 0.0001 -ne 15 -bs 64
+```
+
+<p> <img src="assets/wgangp-cifar10.gif" width="300" > 
+
+<hr>
+
 ## Upcoming/Roadmap
 
 <details open>
-<summary>WGAN</summary>
+<summary>More GANs</summary>
 
 ```python
-# Next I will try to implement WGan-GP and conditional GAN this weekend 
+# This week, I will try to implement Conditional GAN, Least Squares GAN, Cycle GAN, Style GAN, PIX2PIX 
+# The articles of all implemented GANs
 ```
 
 </details>
