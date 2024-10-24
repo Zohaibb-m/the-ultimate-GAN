@@ -146,6 +146,25 @@ tugan train --model-name w-gan-gp --dataset cifar10 -lr 0.0001 -ne 15 -bs 64
 
 <hr>
 
+### Conditional GAN
+
+#### Explanation:
+
+The medium article explaining Wasserstein CGAN will be available shortly
+
+#### Training
+
+Trained on Apple Mac M2 (Average 1.10it/s) with the following configurations:</br>
+Learning Rate: 0.0003, Epochs: 100, Batch Size: 32, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.
+
+```bash
+tugan train --model-name c-gan --dataset mnist 
+```
+
+<p> <img src="assets/cgan-mnist.gif" width="300" > 
+
+<hr>
+
 ## Upcoming/Roadmap
 
 <details open>
