@@ -34,6 +34,7 @@ dataset_map = {
     "celeba": datasets.CelebA,
 }
 
+
 class WGAN:
     """Generative Adversarial Network based model to generate images from random noise.
 
@@ -170,9 +171,9 @@ class WGAN:
 
     def init_summary_writers(self):
         # Initialize the tensorboard writer for fake images
-        self.writer_fake = SummaryWriter(f"runs/WGAN/GAN_{self.dataset_name}/fake")
+        self.writer_fake = SummaryWriter(f"runs/{self.__class__.__name__}/{self.dataset_name}/fake")
         # Initialize the tensorboard writer for real images
-        self.writer_real = SummaryWriter(f"runs/WGAN/GAN_{self.dataset_name}/real")
+        self.writer_real = SummaryWriter(f"runs/{self.__class__.__name__}/{self.dataset_name}/real")
 
     def train(self):
         """
@@ -221,7 +222,7 @@ class WGAN:
                     loss_generator.backward()  # Backward pass for the generator
                     self.opt_gen.step()  # Update the generator weights
 
-                    if batch_idx == 0:
+                    if batch_idx % 100 == 0 and batch_idx > 0:
                         print(f"Epoch [{self.current_epoch}/{self.num_epochs}] Loss Critic: {loss_critic:.8f}, Loss Generator: {loss_generator:.8f}")
 
                         with torch.no_grad():  # Save the generated images to tensorboard
