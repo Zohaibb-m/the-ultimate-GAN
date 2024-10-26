@@ -11,6 +11,7 @@ import torch
 from torch import nn
 from torchinfo import summary
 
+
 class Generator(nn.Module):
     """
     Generator Module for the DC GAN.
@@ -96,6 +97,7 @@ class Generator(nn.Module):
         """
         return self.model(x)
 
+
 class Discriminator(nn.Module):
     """
     Discriminator Module for the DC GAN.
@@ -115,7 +117,7 @@ class Discriminator(nn.Module):
         Either the input image is real or fake.
     """
 
-    def __init__(self, in_channels, mid_channels, out_channels):
+    def __init__(self, in_channels, mid_channels, out_channels, last_activation=True):
         super().__init__()
         self.model = nn.Sequential(
             *self.discriminator_block(in_channels, mid_channels, normalize=False),
@@ -123,7 +125,7 @@ class Discriminator(nn.Module):
             *self.discriminator_block(mid_channels * 2, mid_channels * 4),
             *self.discriminator_block(mid_channels * 4, mid_channels * 8),
             nn.Conv2d(mid_channels * 8, out_channels, 4, 2, 0),
-            nn.Sigmoid()
+            nn.Sigmoid() if last_activation else nn.Identity()
         )
 
     @staticmethod
