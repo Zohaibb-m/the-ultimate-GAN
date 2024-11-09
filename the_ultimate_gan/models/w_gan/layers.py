@@ -8,8 +8,8 @@ Classes:
 """
 
 import torch
-from tensorflow.python.keras.utils.np_utils import normalize
 from torch import nn
+
 
 class Generator(nn.Module):
     """
@@ -98,6 +98,7 @@ class Generator(nn.Module):
             torch.Tensor: Output tensor of shape (batch_size, output_channels, 64, 64).
         """
         return self.model(x)
+
 
 class Critic(nn.Module):
     """
