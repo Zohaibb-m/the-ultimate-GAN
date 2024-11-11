@@ -165,6 +165,25 @@ tugan train --model-name c-gan --dataset mnist
 
 <hr>
 
+### Pix2Pix
+
+#### Explanation:
+
+The medium article explaining Wasserstein Pix2Pix will be available shortly
+
+#### Training
+
+Trained on Apple Mac M2 (Average 2.10it/s) with the following configurations:</br>
+Learning Rate: 0.0003, Epochs: 100, Batch Size: 32, Transforms with Mean: 0.5 and Std: 0.5 for each Channel.
+
+```bash
+tugan train --model-name pix2pix 
+```
+
+<p> <img src="assets/pix2pix-maps.gif" width="300" > 
+
+<hr>
+
 ## Upcoming/Roadmap
 
 <details open>
