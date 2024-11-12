@@ -112,7 +112,8 @@ tugan train --model-name dc-gan --dataset mnist -lr 0.0002 -ne 50 -bs 128
 
 #### Explanation:
 
-The medium article explaining Wasserstein GAN will be available shortly
+The medium article explaining DC GAN is available with the same code explanation
+at <kbd>[Building a Wasserstein GAN](https://medium.com/@zohaibmunir32/generative-adversarial-networks-part-3-improving-the-discriminator-with-wasserstein-gan-ac23b37d44b0)</kbd>
 
 #### Training
 
